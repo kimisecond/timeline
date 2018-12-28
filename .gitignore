@@ -24,3 +24,5 @@
 /nbdist/
 /.nb-gradle/
 performance testing/venv/
+
+start\.bat

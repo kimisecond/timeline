@@ -13,6 +13,8 @@ import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.softwareTest.timeline.Config.Constants.*;
+
 @RestController
 @RequestMapping("/register")
 public class RegisterController
@@ -32,15 +34,23 @@ public class RegisterController
 			errors.getAllErrors().stream()
 					.forEach(error->logger.error(error.getDefaultMessage()));
 		}
+		Map<String,Object> resultMap=new HashMap<>();
+
+		if(registerBean.getUsername().length()>MAX_USERNAME_LENGTH
+				||registerBean.getDisplayName().length()>MAX_DISPLAYNAME_LENGTH
+				||registerBean.getPassword().length()>MAX_PASSWORD_LENGTH)
+		{
+			resultMap.put("result","failure");
+			return resultMap;
+		}
 
 		UserInfo info=new UserInfo();
 		info.setUsername(registerBean.getUsername());
-		info.setDisplayName(registerBean.getDisplayName()==null?
-				registerBean.getUsername():
-				registerBean.getDisplayName());
+		info.setDisplayName(registerBean.getDisplayName()==null?registerBean.getUsername():registerBean
+				.getDisplayName());
 		info.setUserPassword(registerBean.getPassword());
 		boolean result=userInfoService.createNewUserInfo(info);
-		Map<String,Object> resultMap=new HashMap<>();
+
 		resultMap.put("result",result?"success":"failure");
 		return resultMap;
 	}

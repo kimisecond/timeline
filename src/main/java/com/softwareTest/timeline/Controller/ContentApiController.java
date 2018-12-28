@@ -14,13 +14,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import org.json.JSONObject;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.softwareTest.timeline.Config.Constants.MAX_CONTENT_SIZE;
 
 @RestController
 @RequestMapping("/api/content")
@@ -51,8 +56,19 @@ public class ContentApiController
 			errors.getAllErrors().stream()
 					.forEach(error->logger.error(error.getDefaultMessage()));
 		}
-		contentService.createNewContent(content);
+
 		Map<String,Object> resultMap=new HashMap<>();
+
+		JSONObject jsonObject= new JSONObject(content.getContent());
+		String realContent=jsonObject.getString("data");
+
+		if(realContent.length()>MAX_CONTENT_SIZE)
+		{
+			resultMap.put("result","failure");
+			return resultMap;
+		}
+
+		contentService.createNewContent(content);
 		resultMap.put("result","success");
 		resultMap.put("content_id",content.getContentId());
 		resultMap.put("publish_time",content.getPublishTime());
@@ -71,7 +87,7 @@ public class ContentApiController
 		List<Content> queryResult=contentService.retrieveContentByContentId(Integer.parseInt(content_id));
 		if(queryResult.size()==0)
 		{
-			resultMap.put("result","failed");
+			resultMap.put("result","failure");
 			return resultMap;
 		}
 		Content content=queryResult.get(0);
@@ -95,10 +111,10 @@ public class ContentApiController
 			resultMap.put("result","failure");
 			return resultMap;
 		}
-		Date start=new Date(queryBean.getStart().getTime());
-		Date end=new Date(queryBean.getEnd().getTime());
-		List<Content> contentList=contentService.retrieveContentBetweenTime(start,end);
 
+		Timestamp start=new Timestamp(queryBean.getStart().getTime());
+		Timestamp end=new Timestamp(queryBean.getEnd().getTime());
+		List<Content> contentList=contentService.retrieveContentBetweenTime(start,end);
 		return getOrderedContentResultList(resultMap,contentList);
 	}
 
@@ -142,50 +158,50 @@ public class ContentApiController
 	}
 
 
-	@ApiOperation(value="根据user_id查询该用户发表的content", notes="仅需要提供user_id")
-	@ApiImplicitParam(name="queryBean", required=true, dataType="QueryBean")
-	@RequestMapping(value="/detail/by_user",
-			method=RequestMethod.POST, produces="application/json")
-	@JsonView(JsonVisibilityLevel.NormalView.class)
-	public Map<String,Object> getContentByUser(@NotNull @RequestBody QueryBean queryBean)
-	{
-		//TODO 需要进行结果可用性验证
-		Map<String,Object> resultMap=new HashMap<>();
-		if(queryBean.getUser_id()==null)
-		{
-			resultMap.put("result","failure");
-			return resultMap;
-		}
-		Integer user_id=queryBean.getUser_id();
-		List<Content> contentList=contentService.retrieveContentByUserId(user_id);
-
-		resultMap.put("result","success");
-		resultMap.put("entity_list",contentList);
-		return resultMap;
-	}
-
-	@ApiOperation(value="修改已存在的content条目")
-	@ApiImplicitParam(name="content", required=true, dataType="Content")
-	@RequestMapping(value="/update/",
-			method=RequestMethod.PUT, produces="application/json")
-	public Map<String,Object> updateContentById(@Valid @RequestBody Content content,
-												BindingResult errors)
-	{
-		if(errors.hasErrors())
-		{
-			errors.getAllErrors().stream()
-					.forEach(error->logger.error(error.getDefaultMessage()));
-		}
-
-		//TODO 需要进行结果可用性验证
-		//TODO 需要对content_id进行验证
-
-		contentService.updateContentById(content.getContentId(),content);
-		Map<String,Object> resultMap=new HashMap<>();
-		resultMap.put("result","success");
-		resultMap.put("entity",content);
-		return resultMap;
-	}
+//	@ApiOperation(value="根据user_id查询该用户发表的content", notes="仅需要提供user_id")
+//	@ApiImplicitParam(name="queryBean", required=true, dataType="QueryBean")
+//	@RequestMapping(value="/detail/by_user",
+//			method=RequestMethod.POST, produces="application/json")
+//	@JsonView(JsonVisibilityLevel.NormalView.class)
+//	public Map<String,Object> getContentByUser(@NotNull @RequestBody QueryBean queryBean)
+//	{
+//		//TODO 需要进行结果可用性验证
+//		Map<String,Object> resultMap=new HashMap<>();
+//		if(queryBean.getUser_id()==null)
+//		{
+//			resultMap.put("result","failure");
+//			return resultMap;
+//		}
+//		Integer user_id=queryBean.getUser_id();
+//		List<Content> contentList=contentService.retrieveContentByUserId(user_id);
+//
+//		resultMap.put("result","success");
+//		resultMap.put("entity_list",contentList);
+//		return resultMap;
+//	}
+//
+//	@ApiOperation(value="修改已存在的content条目")
+//	@ApiImplicitParam(name="content", required=true, dataType="Content")
+//	@RequestMapping(value="/update/",
+//			method=RequestMethod.PUT, produces="application/json")
+//	public Map<String,Object> updateContentById(@Valid @RequestBody Content content,
+//												BindingResult errors)
+//	{
+//		if(errors.hasErrors())
+//		{
+//			errors.getAllErrors().stream()
+//					.forEach(error->logger.error(error.getDefaultMessage()));
+//		}
+//
+//		//TODO 需要进行结果可用性验证
+//		//TODO 需要对content_id进行验证
+//
+//		contentService.updateContentById(content.getContentId(),content);
+//		Map<String,Object> resultMap=new HashMap<>();
+//		resultMap.put("result","success");
+//		resultMap.put("entity",content);
+//		return resultMap;
+//	}
 
 	@ApiOperation(value="根据content_id删除content")
 	@ApiImplicitParam(name="content_id", required=true, dataType="int")
